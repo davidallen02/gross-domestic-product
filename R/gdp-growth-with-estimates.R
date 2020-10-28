@@ -25,20 +25,26 @@ estimates <- pamngr::join_sheets(c("ecgdus q320",
     qtr = variable %>% stringr::str_sub(start = 8, end = 9) %>%  purrr::map_chr(qtr_to_date),
     yr = variable %>% stringr::str_sub(start = 10, end = 11) %>% paste0("20", .),
     dates = paste(yr, qtr, sep = "-") %>% lubridate::as_datetime(),
-    variable = "Estimate"
+    variable = variable %>% 
+      stringr::str_sub(start = 8, end = 9) %>% 
+      stringr::str_to_upper() %>%
+      paste(yr, .)
   ) %>%
-  dplyr::select(dates, value, variable) %>%
+  dplyr::select(dates, variable, value) %>%
   tibble::as_tibble() 
 
-reported %>%
+periods <- estimates %>% dplyr::select(variable) %>% dplyr::pull()
+
+p <- reported %>%
   dplyr::bind_rows(estimates) %>%
   dplyr::arrange(dates) %>%
   dplyr::slice_max(dates, n = 16) %>%
-  dplyr::mutate(variable = variable %>% factor(levels = c("Reported","Estimate"))) %>%
+  dplyr::mutate(variable = variable %>% factor(levels = c("Reported", periods))) %>%
   pamngr::barplot() %>%
   pamngr::pam_plot(
     plot_title = "US Gross Domestic Product",
     plot_subtitle = "QoQ SAAR",
     caption = FALSE
-  ) %>%
-  pamngr::all_output("gdp-growth-with-estimates")
+  )
+
+p %>% pamngr::all_output("gdp-growth-with-estimates")
